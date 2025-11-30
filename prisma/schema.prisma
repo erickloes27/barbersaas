@@ -1,0 +1,209 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  accounts      Account[]
+  sessions      Session[]
+  
+  // Custom fields
+  cpf           String?   @unique
+  phone         String?
+  birthDate     DateTime?
+  role          String    @default("USER") // USER, BARBER, ADMIN, MASTER
+  
+  barbershopId  String?
+  barbershop    Barbershop? @relation(fields: [barbershopId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  appointments  Appointment[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Barbershop {
+  id             String   @id @default(cuid())
+  name           String   @default("Barber SaaS")
+  slug           String   @unique
+  primaryColor   String   @default("#fbbf24") // Amber-400 default
+  secondaryColor String   @default("#18181b") // Zinc-900 default
+  logoUrl        String?
+  slotDuration   Int      @default(60)
+  
+  // Endereço Fragmentado
+  cep            String   @default("")
+  street         String   @default("")
+  number         String   @default("")
+  complement     String?
+  neighborhood   String   @default("")
+  city           String   @default("")
+  state          String   @default("")
+  
+  // Horários de Funcionamento (Exibição)
+  weekDaysOpen   String   @default("09:00")
+  weekDaysClose  String   @default("20:00")
+  saturdayOpen   String   @default("09:00")
+  saturdayClose  String   @default("18:00")
+  sundayOpen     String   @default("") // Vazio = Fechado
+  sundayClose    String   @default("")
+  
+  phone          String   @default("(11) 99999-9999")
+  
+  // Redes Sociais
+  instagramUrl   String?
+  instagramActive Boolean @default(false)
+  facebookUrl    String?
+  facebookActive Boolean @default(false)
+  twitterUrl     String?
+  twitterActive  Boolean @default(false)
+  tiktokUrl      String?
+  tiktokActive   Boolean @default(false)
+  whatsappUrl    String?
+  whatsappActive Boolean @default(false)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relacionamentos
+  users          User[]
+  services       Service[]
+  barbers        Barber[]
+  appointments   Appointment[]
+  carouselItems  CarouselItem[]
+  schedules      DaySchedule[]
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal
+  duration    Int           // em minutos
+  imageUrl    String?
+  icon        String?       // Nome do ícone (ex: "Scissors", "Zap")
+  order       Int           @default(0)
+  active      Boolean       @default(true)
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  appointments Appointment[]
+}
+
+model Appointment {
+  id        String   @id @default(cuid())
+  date      DateTime
+  status    String   @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+
+  barberId  String?
+  barber    Barber?   @relation(fields: [barberId], references: [id])
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Barber {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  imageUrl  String?
+  instagram String?
+  active    Boolean  @default(true)
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  appointments Appointment[]
+}
+
+model CarouselItem {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  ctaText   String
+  ctaLink   String
+  imageUrl  String
+  order     Int      @default(0)
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model DaySchedule {
+  id        String   @id @default(cuid())
+  dayOfWeek Int      // 0=Domingo, 1=Segunda, ..., 6=Sábado
+  startTime String   // "09:00"
+  endTime   String   // "18:00"
+  pauseStart String? // "12:00"
+  pauseEnd   String? // "13:00"
+  active    Boolean  @default(true)
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([barbershopId, dayOfWeek])
+}
