@@ -32,7 +32,10 @@ export async function getSchedule(overrideId?: string) {
 
     if (!barbershopId) return { schedules: [], slotDuration: 60 };
 
-    const settings = await prisma.barbershop.findUnique({ where: { id: barbershopId } });
+    const settings = await prisma.barbershop.findUnique({
+        where: { id: barbershopId },
+        select: { id: true, slotDuration: true }
+    });
     if (!settings) return { schedules: [], slotDuration: 60 };
 
     const schedules = await prisma.daySchedule.findMany({

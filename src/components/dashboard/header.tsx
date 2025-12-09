@@ -14,7 +14,7 @@ import {
 import { Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
-import { logout } from "@/app/actions";
+import { logout } from "@/actions/auth";
 
 export async function Header() {
     const session = await auth();

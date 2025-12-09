@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Instagram } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { deleteBarber } from "@/app/actions";
+import { deleteBarber } from "@/actions/barber";
 import { AddBarberDialog } from "@/components/dashboard/add-barber-dialog";
 import { FormDeleteButton } from "@/components/ui/form-delete-button";
 import { EditBarberDialog } from "@/components/dashboard/edit-barber-dialog";

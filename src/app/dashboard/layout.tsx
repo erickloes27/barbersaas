@@ -3,7 +3,7 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { SessionGuard } from "@/components/auth/session-guard";
-import { getSettings } from "@/app/settings-actions";
+import { getSettings } from "@/actions/settings";
 
 export default async function DashboardLayout({
     children,

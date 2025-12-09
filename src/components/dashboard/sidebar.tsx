@@ -6,8 +6,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, LogOut, LayoutDashboard, Calendar, Users, Scissors, Settings, User } from "lucide-react";
-import { logout } from "@/app/actions";
-import { getSettings } from "@/app/settings-actions";
+import { logout } from "@/actions/auth";
+import { getSettings } from "@/actions/settings";
 
 interface SidebarProps {
     userRole: string;

@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Camera } from "lucide-react";
-import { createCarouselItem } from "@/app/carousel-actions";
+import { createCarouselItem } from "@/actions/carousel";
 import { toast } from "sonner";
 import {
     Select,

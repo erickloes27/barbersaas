@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { deleteCarouselItem } from "@/app/carousel-actions";
+import { deleteCarouselItem } from "@/actions/carousel";
 import { toast } from "sonner";
 import { EditCarouselDialog } from "./edit-carousel-dialog";
 

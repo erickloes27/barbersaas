@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   description: "Sistema de gestão para barbearias",
 };
 
-import { getSettings } from "./settings-actions";
+import { getSettings } from "@/actions/settings";
 import { Providers } from "@/components/providers";
 import { auth } from "@/auth";
 

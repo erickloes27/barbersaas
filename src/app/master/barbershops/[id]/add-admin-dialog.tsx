@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { UserPlus, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { createAdminUser } from "../../actions";
+import { createAdminUser } from "@/actions/master";
 
 interface AddAdminDialogProps {
     barbershopId: string;

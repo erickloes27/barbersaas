@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { updateProfile } from "@/app/actions";
+import { updateProfile } from "@/actions/user";
 import { format } from "date-fns";
 import { Camera } from "lucide-react";
 import { toast } from "sonner";

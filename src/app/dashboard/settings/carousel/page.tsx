@@ -1,4 +1,4 @@
-import { getCarouselItems } from "@/app/carousel-actions";
+import { getCarouselItems } from "@/actions/carousel";
 import { CarouselList } from "@/components/dashboard/carousel-list";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";

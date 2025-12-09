@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Barbershop } from "@prisma/client";
-import { updateSettings } from "@/app/settings-actions";
+import { updateSettings } from "@/actions/settings";
 import { toast } from "sonner";
 import { Loader2, MapPin, Phone, Clock } from "lucide-react";
 import { InstagramIcon, FacebookIcon, TwitterIcon, TikTokIcon, WhatsAppIcon } from "@/components/social-icons";

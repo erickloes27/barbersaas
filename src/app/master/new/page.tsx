@@ -1,6 +1,6 @@
 "use client";
 
-import { createBarbershop } from "../actions";
+import { createBarbershop } from "@/actions/master";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

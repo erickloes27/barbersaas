@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { getSettings, updateSettings } from "@/app/settings-actions";
+import { getSettings, updateSettings } from "@/actions/settings";
 import { auth } from "@/auth";
 import { Bell, Lock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";

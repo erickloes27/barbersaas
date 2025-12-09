@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { deleteService } from "@/app/actions";
+import { deleteService } from "@/actions/service";
 import { AddServiceDialog } from "@/components/dashboard/add-service-dialog";
 import { FormDeleteButton } from "@/components/ui/form-delete-button";
 import { EditServiceDialog } from "@/components/dashboard/edit-service-dialog";
@@ -41,6 +41,15 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
     const services = await prisma.service.findMany({
         where: whereClause,
         orderBy: { createdAt: "desc" },
+        select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            duration: true,
+            icon: true,
+            order: true,
+        },
     });
 
     return (

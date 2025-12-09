@@ -4,9 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExternalLink } from "lucide-react";
 
+/**
+ * Página Inicial (Home)
+ * 
+ * Esta é a página principal do site (acessível via "/").
+ * Ela é um "Server Component", ou seja, roda no servidor.
+ * 
+ * Funcionalidades:
+ * 1. Busca todas as barbearias no banco de dados.
+ * 2. Renderiza um card para cada barbearia.
+ */
 export default async function Home() {
+  // Busca barbearias ordenadas pelas mais recentes
   const barbershops = await prisma.barbershop.findMany({
     orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logoUrl: true,
+      city: true,
+      state: true,
+      phone: true,
+    },
   });
 
   return (

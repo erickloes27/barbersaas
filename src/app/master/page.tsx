@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { PlusCircle, ExternalLink, LogOut } from "lucide-react";
-import { logout } from "@/app/actions";
+import { logout } from "@/actions/auth";
 
 export default async function MasterDashboard() {
     const session = await auth();

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Scissors, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { loginWithGoogle } from "@/app/actions";
+import { loginWithGoogle } from "@/actions/auth";
 import { LoginForm } from "@/components/auth/login-form";
 
 export default function LoginPage() {

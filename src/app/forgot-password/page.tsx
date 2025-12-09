@@ -7,7 +7,7 @@ import { ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { forgotPassword } from "@/app/actions";
+import { forgotPassword } from "@/actions/auth";
 
 function SubmitButton() {
     const { pending } = useFormStatus();

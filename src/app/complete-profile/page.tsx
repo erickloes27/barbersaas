@@ -1,4 +1,4 @@
-import { completeProfile } from "@/app/actions";
+import { completeProfile } from "@/actions/user";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

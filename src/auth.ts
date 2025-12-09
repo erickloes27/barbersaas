@@ -7,11 +7,19 @@ import Credentials from "next-auth/providers/credentials"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
 
+/**
+ * Configuração de Autenticação (NextAuth.js v5)
+ * 
+ * Este arquivo define como os usuários fazem login no sistema.
+ * Suportamos:
+ * 1. Google (Login Social)
+ * 2. Credenciais (Email e Senha)
+ */
 export const { handlers, signIn, signOut, auth } = NextAuth({
-    adapter: PrismaAdapter(prisma) as any,
+    adapter: PrismaAdapter(prisma) as any, // Salva sessões no banco de dados
     session: {
-        strategy: "jwt",
-        maxAge: 30 * 24 * 60 * 60, // 30 dias
+        strategy: "jwt", // Usa JSON Web Tokens para sessão (mais leve)
+        maxAge: 30 * 24 * 60 * 60, // Sessão dura 30 dias
     },
     // secret removido pois já existe no authConfig ou será pego de process.env automaticamente
     ...authConfig,

@@ -1,1 +1,0 @@
-INSERT OR REPLACE INTO User (id, name, email, password, role, cpf, phone, createdAt, updatedAt) VALUES ('cm_admin_123', 'Admin Barber', 'admin@barber.com', '$2b$10$WbPqJFSitmfPROSgknIiHuS71q0sn1RmcCV3iiiPkQK60pVnTmxEoC', 'ADMIN', '00000000000', '0000000000', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);

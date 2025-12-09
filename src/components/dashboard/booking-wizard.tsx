@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
-import { createBooking, getAvailableSlots } from "@/app/booking-actions";
+import { createBooking, getAvailableSlots } from "@/actions/booking";
 import { Scissors, User, Calendar as CalendarIcon, CheckCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";

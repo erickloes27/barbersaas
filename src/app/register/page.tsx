@@ -23,7 +23,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { registerUser, checkEmailAvailability } from "@/app/actions";
+import { registerUser, checkEmailAvailability } from "@/actions/auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 

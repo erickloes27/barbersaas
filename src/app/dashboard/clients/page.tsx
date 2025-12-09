@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Search } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { deleteUser } from "@/app/actions";
+import { deleteUser } from "@/actions/user";
 import { FormDeleteButton } from "@/components/ui/form-delete-button";
 import {
     Table,

@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, X, User, MoreHorizontal, Calendar as CalendarIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { updateAppointmentStatus, updateAppointmentStatusVoid } from "@/app/actions";
+import { updateAppointmentStatus, updateAppointmentStatusVoid } from "@/actions/appointment";
 import {
     Table,
     TableBody,
