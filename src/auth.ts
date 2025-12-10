@@ -2,7 +2,6 @@ import NextAuth from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import { authConfig } from "./auth.config"
-import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
 import { z } from "zod"
 import bcrypt from "bcryptjs"
@@ -12,16 +11,8 @@ import bcrypt from "bcryptjs"
  * 
  * Este arquivo define como os usuários fazem login no sistema.
  * Suportamos:
- * 1. Google (Login Social)
- * 2. Credenciais (Email e Senha)
+ * 1. Credenciais (Email e Senha)
  */
-
-if (!process.env.GOOGLE_CLIENT_ID) {
-    console.error("⚠️ GOOGLE_CLIENT_ID is missing from environment variables!");
-}
-if (!process.env.GOOGLE_CLIENT_SECRET) {
-    console.error("⚠️ GOOGLE_CLIENT_SECRET is missing from environment variables!");
-}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
     adapter: PrismaAdapter(prisma) as any, // Salva sessões no banco de dados
@@ -32,10 +23,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // secret removido pois já existe no authConfig ou será pego de process.env automaticamente
     ...authConfig,
     providers: [
-        Google({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        }),
         Credentials({
             credentials: {
                 email: { label: "Email", type: "email" },
