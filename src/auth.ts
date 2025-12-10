@@ -44,17 +44,37 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 password: { label: "Password", type: "password" },
             },
             authorize: async (credentials) => {
+                console.log("[Auth] Authorize called");
                 const parsedCredentials = z
                     .object({ email: z.string().email(), password: z.string().min(6) })
                     .safeParse(credentials);
 
                 if (parsedCredentials.success) {
                     const { email, password } = parsedCredentials.data;
+                    console.log(`[Auth] Fetching user: ${email}`);
                     const user = await prisma.user.findUnique({ where: { email } });
-                    if (!user || !user.password) return null;
 
+                    if (!user) {
+                        console.log("[Auth] User not found");
+                        return null;
+                    }
+
+                    if (!user.password) {
+                        console.log("[Auth] User has no password (social login?)");
+                        return null;
+                    }
+
+                    console.log("[Auth] Verifying password");
                     const passwordsMatch = await bcrypt.compare(password, user.password);
-                    if (passwordsMatch) return user;
+
+                    if (passwordsMatch) {
+                        console.log("[Auth] Password match! Returning user.");
+                        return user;
+                    } else {
+                        console.log("[Auth] Password mismatch");
+                    }
+                } else {
+                    console.log("[Auth] Invalid credentials format");
                 }
 
                 return null;
@@ -65,12 +85,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         ...authConfig.callbacks,
         async jwt({ token, user }) {
             if (user) {
+                console.log("[Auth] JWT Callback: User logged in, adding claims");
                 token.role = user.role;
                 token.barbershopId = user.barbershopId;
             }
             return token;
         },
         async session({ session, token }) {
+            // console.log("[Auth] Session Callback"); // Commented to avoid spam
             if (token.sub && session.user) {
                 session.user.id = token.sub;
                 session.user.role = token.role as string;
