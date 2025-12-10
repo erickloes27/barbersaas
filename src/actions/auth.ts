@@ -32,7 +32,12 @@ export async function loginWithCredentials(prevState: any, formData: FormData) {
                     return { error: "Algo deu errado." };
             }
         }
-        throw error;
+        // Re-throw Next.js redirects
+        if ((error as any).message === "NEXT_REDIRECT" || (error as any).digest?.startsWith("NEXT_REDIRECT")) {
+            throw error;
+        }
+        console.error("Login error:", error);
+        return { error: "Erro interno do sistema. Verifique os logs." };
     }
 }
 

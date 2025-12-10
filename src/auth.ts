@@ -24,6 +24,7 @@ if (!process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+    debug: true, // Enable debug logs for Netlify
     trustHost: true, // Fix for Netlify UntrustedHost error
     adapter: PrismaAdapter(prisma) as any, // Salva sessões no banco de dados
     session: {
