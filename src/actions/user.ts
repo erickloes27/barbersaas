@@ -4,8 +4,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { writeFile } from "fs/promises";
-import { join } from "path";
 import { revalidatePath } from "next/cache";
 
 const profileSchema = z.object({
@@ -56,16 +54,12 @@ export async function updateProfile(formData: FormData) {
         try {
             const bytes = await imageFile.arrayBuffer();
             const buffer = Buffer.from(bytes);
-
-            const filename = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, "")}`;
-            const uploadDir = join(process.cwd(), "public", "uploads");
-            const filepath = join(uploadDir, filename);
-
-            await writeFile(filepath, buffer);
-            imagePath = `/uploads/${filename}`;
+            const base64 = buffer.toString('base64');
+            const mimeType = imageFile.type || 'image/jpeg';
+            imagePath = `data:${mimeType};base64,${base64}`;
         } catch (error) {
-            console.error("Erro ao salvar imagem:", error);
-            return { error: "Erro ao salvar imagem de perfil." };
+            console.error("Erro ao processar imagem:", error);
+            return { error: "Erro ao processar imagem de perfil." };
         }
     }
 

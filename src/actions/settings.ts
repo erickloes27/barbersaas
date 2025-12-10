@@ -4,8 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "@/auth";
-import { writeFile } from "fs/promises";
-import { join } from "path";
 
 export async function getSettings(overrideId?: string) {
     const session = await auth();
@@ -80,15 +78,12 @@ export async function updateSettings(formData: FormData) {
         try {
             const bytes = await logoFile.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            const filename = `logo-${Date.now()}-${logoFile.name.replace(/[^a-zA-Z0-9.]/g, "")}`;
-            const uploadDir = join(process.cwd(), "public", "uploads");
-            const filepath = join(uploadDir, filename);
-
-            await writeFile(filepath, buffer);
-            logoUrl = `/uploads/${filename}`;
+            const base64 = buffer.toString('base64');
+            const mimeType = logoFile.type || 'image/jpeg';
+            logoUrl = `data:${mimeType};base64,${base64}`;
         } catch (error) {
-            console.error("Erro ao salvar logo:", error);
-            throw new Error("Erro ao salvar logo.");
+            console.error("Erro ao processar logo:", error);
+            throw new Error("Erro ao processar logo.");
         }
     }
 
