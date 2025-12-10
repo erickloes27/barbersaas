@@ -2,8 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
 import { z } from "zod";
 
 const carouselSchema = z.object({
