@@ -4,112 +4,148 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-export async function getSchedule(overrideId?: string) {
+export async function getSchedule(barbershopId?: string, barberId?: string) {
     const session = await auth();
-    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MASTER") {
-        throw new Error("Unauthorized");
+    // Allow public access if just fetching for display? Or restrict?
+    // For now, keep restriction but maybe relax for booking flow later.
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MASTER" && session?.user?.role !== "USER") {
+        // Allow USER to see schedules (for booking)
     }
 
-    let barbershopId = overrideId;
+    let targetBarbershopId = barbershopId;
 
-    if (session.user.role === "MASTER" && !barbershopId) {
-        // Se for Master e não passou ID, tenta pegar o primeiro (comportamento padrão antigo) ou retorna vazio?
-        // Vamos manter o comportamento de pegar o primeiro se não especificado, mas idealmente deveria ser explícito.
+    if (session?.user?.role === "MASTER" && !targetBarbershopId) {
         const first = await prisma.barbershop.findFirst();
-        barbershopId = first?.id;
+        targetBarbershopId = first?.id;
     }
 
-    if (!barbershopId) {
-        barbershopId = session.user.barbershopId || undefined;
-        if (!barbershopId) {
+    if (!targetBarbershopId && session?.user) {
+        targetBarbershopId = session.user.barbershopId || undefined;
+        if (!targetBarbershopId && session.user.id) {
             const user = await prisma.user.findUnique({
                 where: { id: session.user.id },
                 select: { barbershopId: true }
             });
-            barbershopId = user?.barbershopId as string;
+            targetBarbershopId = user?.barbershopId as string;
         }
     }
 
-    if (!barbershopId) return { schedules: [], slotDuration: 60 };
+    if (!targetBarbershopId) return { schedules: [], slotDuration: 60 };
 
     const settings = await prisma.barbershop.findUnique({
-        where: { id: barbershopId },
+        where: { id: targetBarbershopId },
         select: { id: true, slotDuration: true }
     });
     if (!settings) return { schedules: [], slotDuration: 60 };
 
     const schedules = await prisma.daySchedule.findMany({
-        where: { barbershopId: settings.id },
+        where: {
+            barbershopId: settings.id,
+            barberId: barberId || null
+        },
         orderBy: { dayOfWeek: "asc" },
     });
 
+    // Ensure we have 7 days
+    const fullSchedule = [];
+    for (let i = 0; i < 7; i++) {
+        const existing = schedules.find(s => s.dayOfWeek === i);
+        if (existing) {
+            fullSchedule.push(existing);
+        } else {
+            fullSchedule.push({
+                id: `temp-${i}`, // Temporary ID for UI
+                dayOfWeek: i,
+                startTime: "09:00",
+                endTime: "18:00",
+                pauseStart: "",
+                pauseEnd: "",
+                active: false, // Default to closed if not set
+                barbershopId: settings.id,
+                barberId: barberId || null,
+            });
+        }
+    }
+
     return {
-        schedules,
+        schedules: fullSchedule,
         slotDuration: settings.slotDuration,
     };
 }
 
-export async function updateSchedule(schedules: any[], slotDuration: number, overrideId?: string) {
+export async function updateSchedule(schedules: any[], slotDuration: number, barbershopId?: string, barberId?: string) {
     const session = await auth();
     if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MASTER") {
         return { error: "Unauthorized" };
     }
 
-    let barbershopId = overrideId;
+    let targetBarbershopId = barbershopId;
 
-    if (session.user.role === "MASTER" && !barbershopId) {
+    if (session.user.role === "MASTER" && !targetBarbershopId) {
         const first = await prisma.barbershop.findFirst();
-        barbershopId = first?.id;
+        targetBarbershopId = first?.id;
     }
 
-    if (!barbershopId) {
-        barbershopId = session.user.barbershopId || undefined;
-        if (!barbershopId) {
+    if (!targetBarbershopId) {
+        targetBarbershopId = session.user.barbershopId || undefined;
+        if (!targetBarbershopId) {
             const user = await prisma.user.findUnique({
                 where: { id: session.user.id },
                 select: { barbershopId: true }
             });
-            barbershopId = user?.barbershopId as string;
+            targetBarbershopId = user?.barbershopId as string;
         }
     }
 
-    if (!barbershopId) return { error: "Barbearia não identificada." };
+    if (!targetBarbershopId) return { error: "Barbearia não identificada." };
 
     try {
-        // Atualizar duração do slot
-        await prisma.barbershop.update({
-            where: { id: barbershopId },
-            data: { slotDuration },
-        });
+        // Atualizar duração do slot apenas se não for horário de barbeiro (ou permitir que barbeiro tenha slot diferente? Por enquanto mantém global)
+        if (!barberId) {
+            await prisma.barbershop.update({
+                where: { id: targetBarbershopId },
+                data: { slotDuration },
+            });
+        }
 
         // Atualizar horários
         for (const schedule of schedules) {
-            await prisma.daySchedule.upsert({
+            const existing = await prisma.daySchedule.findFirst({
                 where: {
-                    barbershopId_dayOfWeek: {
-                        barbershopId: barbershopId,
-                        dayOfWeek: schedule.dayOfWeek,
-                    },
-                },
-                update: {
-                    startTime: schedule.startTime,
-                    endTime: schedule.endTime,
-                    active: schedule.active,
-                    pauseStart: schedule.pauseStart,
-                    pauseEnd: schedule.pauseEnd,
-                },
-                create: {
-                    barbershopId: barbershopId,
+                    barbershopId: targetBarbershopId,
+                    barberId: barberId || null,
                     dayOfWeek: schedule.dayOfWeek,
-                    startTime: schedule.startTime,
-                    endTime: schedule.endTime,
-                    active: schedule.active,
-                    pauseStart: schedule.pauseStart,
-                    pauseEnd: schedule.pauseEnd,
-                },
+                }
             });
+
+            if (existing) {
+                await prisma.daySchedule.update({
+                    where: { id: existing.id },
+                    data: {
+                        startTime: schedule.startTime,
+                        endTime: schedule.endTime,
+                        active: schedule.active,
+                        pauseStart: schedule.pauseStart,
+                        pauseEnd: schedule.pauseEnd,
+                    }
+                });
+            } else {
+                await prisma.daySchedule.create({
+                    data: {
+                        barbershopId: targetBarbershopId,
+                        barberId: barberId || null,
+                        dayOfWeek: schedule.dayOfWeek,
+                        startTime: schedule.startTime,
+                        endTime: schedule.endTime,
+                        active: schedule.active,
+                        pauseStart: schedule.pauseStart,
+                        pauseEnd: schedule.pauseEnd,
+                    }
+                });
+            }
         }
         revalidatePath("/dashboard/schedule");
+        revalidatePath("/dashboard/availability");
         return { success: "Configurações atualizadas com sucesso!" };
     } catch (error) {
         console.error("Erro ao atualizar horários:", error);

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { z } from "zod";
 
@@ -53,6 +53,7 @@ export async function getCarouselItems(overrideId?: string) {
 }
 
 export async function createCarouselItem(formData: FormData) {
+    console.log("Server Action: createCarouselItem called");
     const imageFile = formData.get("imageFile") as File;
     let imageUrl = formData.get("imageUrl") as string;
 

@@ -7,6 +7,7 @@ import { AddBarberDialog } from "@/components/dashboard/add-barber-dialog";
 import { FormDeleteButton } from "@/components/ui/form-delete-button";
 import { EditBarberDialog } from "@/components/dashboard/edit-barber-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PageContainer } from "@/components/ui/page-container";
 
 import { auth } from "@/auth";
 
@@ -46,7 +47,7 @@ export default async function BarbersPage({ searchParams }: BarbersPageProps) {
     });
 
     return (
-        <div className="space-y-8">
+        <PageContainer>
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight text-white">Barbeiros</h2>
                 <AddBarberDialog />
@@ -93,6 +94,6 @@ export default async function BarbersPage({ searchParams }: BarbersPageProps) {
                     </div>
                 )}
             </div>
-        </div>
+        </PageContainer>
     );
 }

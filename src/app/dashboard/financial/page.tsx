@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageContainer } from "@/components/ui/page-container";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { prisma } from "@/lib/prisma";
@@ -36,48 +37,109 @@ export default async function FinancialPage({ searchParams }: FinancialPageProps
         }
     }
 
-    const whereClause: any = { status: "COMPLETED" };
+    const whereClause: any = {};
     if (targetBarbershopId) {
         whereClause.barbershopId = targetBarbershopId;
     } else if (userRole === "ADMIN") {
         whereClause.barbershopId = "invalid";
     }
 
-    // Buscar todos os agendamentos concluídos (Receita)
-    const completedAppointments = await prisma.appointment.findMany({
-        where: whereClause,
-        include: {
-            user: true,
-            service: true,
+    // 1. Buscar dados para KPIs e Gráficos (Leve - Apenas campos necessários)
+    // Precisamos de todos os concluídos para os gráficos de período
+    const completedAppointmentsData = await prisma.appointment.findMany({
+        where: {
+            ...whereClause,
+            status: "COMPLETED"
         },
-        orderBy: { date: "desc" },
+        select: {
+            date: true,
+            service: {
+                select: {
+                    name: true,
+                    price: true
+                }
+            },
+            barber: {
+                select: {
+                    name: true,
+                    imageUrl: true
+                }
+            }
+        },
+        orderBy: { date: "desc" }
     });
 
-    const totalRevenue = completedAppointments.reduce((acc, curr) => {
+    // 2. Contagens Rápidas (Banco de Dados)
+    const [totalCount, cancelledCount] = await Promise.all([
+        prisma.appointment.count({ where: whereClause }),
+        prisma.appointment.count({ where: { ...whereClause, status: "CANCELLED" } })
+    ]);
+
+    // 3. Buscar APENAS os últimos 10 para a tabela (Com detalhes)
+    const recentTransactions = await prisma.appointment.findMany({
+        where: whereClause,
+        include: {
+            user: { select: { name: true } }, // Só o nome do usuário
+            service: { select: { name: true, price: true } },
+            barber: { select: { name: true } }
+        },
+        orderBy: { date: "desc" },
+        take: 10
+    });
+
+    // Cálculos em memória (agora com payload muito menor)
+    const totalRevenue = completedAppointmentsData.reduce((acc, curr) => {
         return acc + Number(curr.service.price);
     }, 0);
 
-    // 1. Agregação por Serviço
-    const serviceRevenueMap = new Map<string, number>();
-    completedAppointments.forEach(apt => {
-        const current = serviceRevenueMap.get(apt.service.name) || 0;
-        serviceRevenueMap.set(apt.service.name, current + Number(apt.service.price));
+    const averageTicket = completedAppointmentsData.length > 0 ? totalRevenue / completedAppointmentsData.length : 0;
+    const cancellationRate = totalCount > 0 ? (cancelledCount / totalCount) * 100 : 0;
+
+    // 1. Agregação por Serviço (Ranking)
+    const serviceStats = new Map<string, { name: string, revenue: number, count: number }>();
+    completedAppointmentsData.forEach(apt => {
+        const current = serviceStats.get(apt.service.name) || { name: apt.service.name, revenue: 0, count: 0 };
+        serviceStats.set(apt.service.name, {
+            name: apt.service.name,
+            revenue: current.revenue + Number(apt.service.price),
+            count: current.count + 1
+        });
     });
 
+    const topServices = Array.from(serviceStats.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
     const COLORS = ["#fbbf24", "#f59e0b", "#d97706", "#b45309", "#78350f"];
-    const serviceRevenueData = Array.from(serviceRevenueMap.entries()).map(([name, value], index) => ({
-        name,
-        value,
+    const serviceRevenueData = topServices.map((item, index) => ({
+        name: item.name,
+        value: item.revenue,
         fill: COLORS[index % COLORS.length]
-    })).sort((a, b) => b.value - a.value);
+    }));
 
-    // 2. Agregação Temporal
+    // 2. Agregação por Barbeiro (Ranking)
+    const barberStats = new Map<string, { name: string, revenue: number, count: number, imageUrl: string | null }>();
+    completedAppointmentsData.forEach(apt => {
+        const barberName = apt.barber?.name || "Sem Barbeiro";
+        const current = barberStats.get(barberName) || { name: barberName, revenue: 0, count: 0, imageUrl: apt.barber?.imageUrl || null };
+        barberStats.set(barberName, {
+            name: barberName,
+            revenue: current.revenue + Number(apt.service.price),
+            count: current.count + 1,
+            imageUrl: current.imageUrl
+        });
+    });
 
+    const topBarbers = Array.from(barberStats.values())
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5);
+
+    // 3. Agregação Temporal
     // Diário (Últimos 30 dias)
     const dailyData = [];
     for (let i = 29; i >= 0; i--) {
         const date = subDays(new Date(), i);
-        const dayTotal = completedAppointments
+        const dayTotal = completedAppointmentsData
             .filter(apt => isSameDay(new Date(apt.date), date))
             .reduce((acc, curr) => acc + Number(curr.service.price), 0);
 
@@ -94,7 +156,7 @@ export default async function FinancialPage({ searchParams }: FinancialPageProps
         const start = startOfWeek(date, { weekStartsOn: 0 }); // Domingo
         const end = endOfWeek(date, { weekStartsOn: 0 });
 
-        const weekTotal = completedAppointments
+        const weekTotal = completedAppointmentsData
             .filter(apt => {
                 const aptDate = new Date(apt.date);
                 return aptDate >= start && aptDate <= end;
@@ -114,7 +176,7 @@ export default async function FinancialPage({ searchParams }: FinancialPageProps
         const start = startOfMonth(date);
         const end = endOfMonth(date);
 
-        const monthTotal = completedAppointments
+        const monthTotal = completedAppointmentsData
             .filter(apt => {
                 const aptDate = new Date(apt.date);
                 return aptDate >= start && aptDate <= end;
@@ -128,23 +190,113 @@ export default async function FinancialPage({ searchParams }: FinancialPageProps
     }
 
     return (
-        <div className="space-y-8">
+        <PageContainer>
             <div className="flex items-center justify-between">
-                <h2 className="text-3xl font-bold tracking-tight text-white">Financeiro</h2>
+                <h2 className="text-3xl font-bold tracking-tight text-white">Financeiro Avançado</h2>
             </div>
 
-            <div className="grid gap-4 grid-cols-1">
+            {/* KPIs Principais */}
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="bg-zinc-900 border-zinc-800 text-white">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-lg font-medium text-zinc-400">Receita Total Acumulada</CardTitle>
+                        <CardTitle className="text-sm font-medium text-zinc-400">Receita Total</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-5xl font-bold text-emerald-500">
+                        <div className="text-2xl font-bold text-emerald-500">
                             {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalRevenue)}
                         </div>
-                        <p className="text-sm text-zinc-400 mt-2">
-                            +100% em relação ao início (Todo o período)
-                        </p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-zinc-900 border-zinc-800 text-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-zinc-400">Ticket Médio</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-sky-500">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(averageTicket)}
+                        </div>
+                    </CardContent>
+                </Card>
+                <Card className="bg-zinc-900 border-zinc-800 text-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-zinc-400">Agendamentos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-white">
+                            {completedAppointmentsData.length}
+                        </div>
+                        <p className="text-xs text-zinc-500">Concluídos</p>
+                    </CardContent>
+                </Card>
+                <Card className="bg-zinc-900 border-zinc-800 text-white">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-zinc-400">Cancelamentos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-500">
+                            {cancellationRate.toFixed(1)}%
+                        </div>
+                        <p className="text-xs text-zinc-500">{cancelledCount} cancelados</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Rankings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Top Serviços */}
+                <Card className="bg-zinc-900 border-zinc-800 text-white">
+                    <CardHeader>
+                        <CardTitle>Top Serviços (Receita)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topServices.map((service, index) => (
+                                <div key={service.name} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-zinc-800 text-xs font-bold text-zinc-400">
+                                            {index + 1}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-medium">{service.name}</p>
+                                            <p className="text-xs text-zinc-500">{service.count} agendamentos</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-sm font-bold text-emerald-500">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(service.revenue)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Top Barbeiros */}
+                <Card className="bg-zinc-900 border-zinc-800 text-white">
+                    <CardHeader>
+                        <CardTitle>Top Barbeiros (Performance)</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {topBarbers.map((barber, index) => (
+                                <div key={barber.name} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-zinc-800 text-xs font-bold text-zinc-400">
+                                            {index + 1}
+                                        </div>
+                                        {barber.imageUrl && (
+                                            <img src={barber.imageUrl} alt={barber.name} className="w-8 h-8 rounded-full object-cover" />
+                                        )}
+                                        <div>
+                                            <p className="text-sm font-medium">{barber.name}</p>
+                                            <p className="text-xs text-zinc-500">{barber.count} atendimentos</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-sm font-bold text-sky-500">
+                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(barber.revenue)}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -169,40 +321,39 @@ export default async function FinancialPage({ searchParams }: FinancialPageProps
                             <TableRow className="border-zinc-800 hover:bg-zinc-800/50">
                                 <TableHead className="text-zinc-400">Cliente</TableHead>
                                 <TableHead className="text-zinc-400">Serviço</TableHead>
+                                <TableHead className="text-zinc-400">Barbeiro</TableHead>
                                 <TableHead className="text-zinc-400">Data</TableHead>
                                 <TableHead className="text-zinc-400">Valor</TableHead>
                                 <TableHead className="text-zinc-400">Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {completedAppointments.map((apt) => (
+                            {recentTransactions.map((apt) => (
                                 <TableRow key={apt.id} className="border-zinc-800 hover:bg-zinc-800/50">
                                     <TableCell className="font-medium">{apt.user.name}</TableCell>
                                     <TableCell>{apt.service.name}</TableCell>
+                                    <TableCell>{apt.barber?.name || "-"}</TableCell>
                                     <TableCell>
-                                        {format(new Date(apt.date), "dd 'de' MMMM 'às' HH:mm", { locale: ptBR })}
+                                        {format(new Date(apt.date), "dd/MM HH:mm", { locale: ptBR })}
                                     </TableCell>
                                     <TableCell>
                                         {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(apt.service.price))}
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
-                                            Concluído
+                                        <Badge variant="outline" className={
+                                            apt.status === "COMPLETED" ? "bg-green-500/10 text-green-500 border-green-500/20" :
+                                                apt.status === "CANCELLED" ? "bg-red-500/10 text-red-500 border-red-500/20" :
+                                                    "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+                                        }>
+                                            {apt.status === "COMPLETED" ? "Concluído" : apt.status === "CANCELLED" ? "Cancelado" : "Agendado"}
                                         </Badge>
                                     </TableCell>
                                 </TableRow>
                             ))}
-                            {completedAppointments.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={5} className="text-center py-8 text-zinc-500">
-                                        Nenhuma transação encontrada.
-                                    </TableCell>
-                                </TableRow>
-                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
             </Card>
-        </div>
+        </PageContainer>
     );
 }

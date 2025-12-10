@@ -46,7 +46,7 @@ export default async function BarbershopPage({ params }: BarbershopPageProps) {
 
     return (
         <main className="min-h-screen bg-black text-white">
-            <Header barbershopName={barbershop.name} barbershopLogo={barbershop.logoUrl} />
+            <Header barbershopName={barbershop.name} barbershopLogo={barbershop.logoUrl} slug={barbershop.slug} />
             <Hero slides={carouselItems} />
             <Services services={formattedServices} />
             <Barbers barbers={barbers} />

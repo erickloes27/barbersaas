@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { sendSystemEmail } from "@/actions/email";
 import { z } from "zod";
 
 const bookingSchema = z.object({
@@ -26,12 +27,12 @@ export async function getAvailableSlots(dateStr: string, barberId: string) {
     }
 
     // Buscar horário de funcionamento para o dia da semana
-    const schedule = await prisma.daySchedule.findUnique({
+    // Buscar horário de funcionamento para o dia da semana
+    const schedule = await prisma.daySchedule.findFirst({
         where: {
-            barbershopId_dayOfWeek: {
-                barbershopId: barber.barbershopId,
-                dayOfWeek,
-            },
+            barbershopId: barber.barbershopId,
+            barberId: barberId,
+            dayOfWeek,
         },
     });
 
@@ -192,6 +193,35 @@ export async function createBooking(formData: FormData) {
                 status: "SCHEDULED",
             },
         });
+
+        // Auto-add client to barbershop if not already linked (or update to latest)
+        // Check if user is already linked to THIS shop to avoid unnecessary writes
+        if (user.barbershopId !== barbershop.id && user.role === "USER") {
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { barbershopId: barbershop.id }
+            });
+        }
+
+        // Fetch details for email
+        const service = await prisma.service.findUnique({ where: { id: validated.data.serviceId } });
+        const barber = await prisma.barber.findUnique({ where: { id: validated.data.barberId } });
+
+        if (service) {
+            // Send confirmation email
+            await sendSystemEmail(
+                "APPOINTMENT_REMINDER", // Using this as confirmation for now
+                { email: user.email, name: user.name },
+                {
+                    date: appointmentDate.toLocaleDateString("pt-BR"),
+                    time: appointmentDate.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+                    service: service.name,
+                    barber: barber?.name || "Barbeiro da casa"
+                },
+                barbershop.id
+            );
+        }
+
         console.log("Agendamento criado com sucesso:", newAppointment);
 
         revalidatePath("/dashboard");

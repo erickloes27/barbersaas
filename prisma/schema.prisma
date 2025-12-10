@@ -116,6 +116,8 @@ model Barbershop {
   appointments   Appointment[]
   carouselItems  CarouselItem[]
   schedules      DaySchedule[]
+  emailTemplates EmailTemplate[]
+  marketingCampaigns MarketingCampaign[]
 }
 
 model Service {
@@ -172,6 +174,7 @@ model Barber {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   appointments Appointment[]
+  schedules    DaySchedule[]
 }
 
 model CarouselItem {
@@ -199,11 +202,42 @@ model DaySchedule {
   pauseEnd   String? // "13:00"
   active    Boolean  @default(true)
   
+  barberId     String?
+  barber       Barber?    @relation(fields: [barberId], references: [id])
+  
   barbershopId String
   barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([barbershopId, dayOfWeek])
+  @@unique([barbershopId, barberId, dayOfWeek])
+}
+
+model EmailTemplate {
+  id           String   @id @default(cuid())
+  type         String   // WELCOME, PASSWORD_RESET, APPOINTMENT_REMINDER
+  subject      String
+  content      String   // HTML content
+  active       Boolean  @default(true)
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([barbershopId, type])
+}
+
+model MarketingCampaign {
+  id           String   @id @default(cuid())
+  subject      String
+  content      String
+  recipientCount Int
+  
+  barbershopId String
+  barbershop   Barbershop @relation(fields: [barbershopId], references: [id])
+
+  createdAt    DateTime @default(now()) // Sent at
 }

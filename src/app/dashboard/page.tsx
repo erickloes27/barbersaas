@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageContainer } from "@/components/ui/page-container";
 import { DollarSign, Users, Calendar, Plus, Clock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { OverviewChart } from "@/components/dashboard/overview-chart";
@@ -60,7 +61,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         });
 
         return (
-            <div className="space-y-8">
+            <PageContainer>
                 <div className="flex items-center justify-between">
                     <h2 className="text-3xl font-bold tracking-tight text-white">Olá, {session?.user?.name}</h2>
                 </div>
@@ -123,7 +124,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         </CardContent>
                     </Card>
                 </div>
-            </div>
+            </PageContainer>
         );
     }
 
@@ -132,71 +133,95 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     // Se for MASTER sem barbershopId, talvez mostrar visão geral global?
     // Por enquanto, vamos aplicar o filtro. Se whereBarbershop for vazio, pega tudo (Global).
 
-    // 1. Faturamento Total
-    const completedAppointments = await prisma.appointment.findMany({
-        where: {
-            status: "COMPLETED",
-            ...whereBarbershop
-        },
-        include: { service: true },
-    });
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    // Executar queries em paralelo para otimizar performance
+    const [completedAppointments, newClientsCount, appointmentsTodayCount, recentSales] = await Promise.all([
+        // 1. Faturamento Total
+        prisma.appointment.findMany({
+            where: {
+                status: "COMPLETED",
+                ...whereBarbershop
+            },
+            include: { service: true },
+        }),
+
+        // 2. Novos Clientes (Mês)
+        prisma.user.count({
+            where: {
+                role: "USER",
+                createdAt: { gte: startOfMonth },
+                ...whereBarbershop
+            },
+        }),
+
+        // 3. Agendamentos Hoje
+        prisma.appointment.count({
+            where: {
+                date: {
+                    gte: startOfDay,
+                    lte: endOfDay,
+                },
+                ...whereBarbershop
+            },
+        }),
+
+        // 5. Vendas Recentes
+        prisma.appointment.findMany({
+            where: {
+                status: "COMPLETED",
+                ...whereBarbershop
+            },
+            take: 5,
+            orderBy: { date: "desc" },
+            include: {
+                user: true,
+                service: true,
+            },
+        })
+    ]);
 
     const totalRevenue = completedAppointments.reduce((acc, curr) => {
         return acc + Number(curr.service.price);
     }, 0);
 
-    // 2. Novos Clientes (Criados este mês)
-    // Nota: Clientes podem não ter barbershopId se forem globais, mas se tiverem, filtramos.
-    // Se o sistema for estritamente multi-tenant, User deveria ter barbershopId.
-    // Mas User pode ser cliente de várias. Vamos assumir filtro por barbershopId se existir no User.
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    // 4. Dados do Gráfico (Otimizado)
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-    // Ajuste: Count users linked to this barbershop (if filtering)
-    // Se User tem barbershopId, ok. Se não, como saber?
-    // Por enquanto, vamos contar users que têm agendamento nessa barbearia ou estão vinculados.
-    // Simplificação: Count users with role USER created this month (Global count if no filter, or filter by barbershopId if User has it)
-    const newClientsCount = await prisma.user.count({
+    const sixMonthsAppointments = await prisma.appointment.findMany({
         where: {
-            role: "USER",
-            createdAt: { gte: startOfMonth },
-            ...whereBarbershop
-        },
-    });
-
-    // 3. Agendamentos Hoje
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    const appointmentsTodayCount = await prisma.appointment.count({
-        where: {
+            status: "COMPLETED",
             date: {
-                gte: startOfDay,
-                lte: endOfDay,
+                gte: sixMonthsAgo,
+                lt: nextMonthStart,
             },
             ...whereBarbershop
         },
+        select: {
+            date: true,
+            service: {
+                select: { price: true }
+            }
+        }
     });
 
-    // 4. Dados do Gráfico
     const monthlyRevenue = [];
     for (let i = 5; i >= 0; i--) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthName = date.toLocaleString('pt-BR', { month: 'short' });
-        const nextMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
+        const monthKey = date.getMonth();
+        const yearKey = date.getFullYear();
 
-        const monthAppointments = await prisma.appointment.findMany({
-            where: {
-                status: "COMPLETED",
-                date: {
-                    gte: date,
-                    lt: nextMonth,
-                },
-                ...whereBarbershop
-            },
-            include: { service: true },
-        });
-
-        const monthTotal = monthAppointments.reduce((acc, curr) => acc + Number(curr.service.price), 0);
+        const monthTotal = sixMonthsAppointments
+            .filter(apt => {
+                const aptDate = new Date(apt.date);
+                return aptDate.getMonth() === monthKey && aptDate.getFullYear() === yearKey;
+            })
+            .reduce((acc, curr) => acc + Number(curr.service.price), 0);
 
         monthlyRevenue.push({
             name: monthName.charAt(0).toUpperCase() + monthName.slice(1),
@@ -204,22 +229,8 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
         });
     }
 
-    // 5. Vendas Recentes
-    const recentSales = await prisma.appointment.findMany({
-        where: {
-            status: "COMPLETED",
-            ...whereBarbershop
-        },
-        take: 5,
-        orderBy: { date: "desc" },
-        include: {
-            user: true,
-            service: true,
-        },
-    });
-
     return (
-        <div className="space-y-8">
+        <PageContainer>
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight text-white">Dashboard</h2>
             </div>
@@ -297,6 +308,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                     </CardContent>
                 </Card>
             </div>
-        </div>
+        </PageContainer>
     );
 }

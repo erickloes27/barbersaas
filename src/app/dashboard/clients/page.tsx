@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PageContainer } from "@/components/ui/page-container";
 
 import { auth } from "@/auth";
 
@@ -57,7 +58,7 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
     });
 
     return (
-        <div className="space-y-8">
+        <PageContainer>
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight text-white">Clientes</h2>
                 {/* Futuro: Barra de busca */}
@@ -115,6 +116,6 @@ export default async function ClientsPage({ searchParams }: ClientsPageProps) {
                     </Table>
                 </CardContent>
             </Card>
-        </div>
+        </PageContainer>
     );
 }

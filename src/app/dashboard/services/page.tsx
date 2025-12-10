@@ -6,6 +6,7 @@ import { deleteService } from "@/actions/service";
 import { AddServiceDialog } from "@/components/dashboard/add-service-dialog";
 import { FormDeleteButton } from "@/components/ui/form-delete-button";
 import { EditServiceDialog } from "@/components/dashboard/edit-service-dialog";
+import { PageContainer } from "@/components/ui/page-container";
 
 import { auth } from "@/auth";
 
@@ -52,15 +53,20 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
         },
     });
 
+    const formattedServices = services.map((service) => ({
+        ...service,
+        price: Number(service.price),
+    }));
+
     return (
-        <div className="space-y-8">
+        <PageContainer>
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight text-white">Serviços</h2>
                 <AddServiceDialog />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {services.map((service) => (
+                {formattedServices.map((service) => (
                     <Card key={service.id} className="bg-zinc-900 border-zinc-800 text-white">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-lg font-bold">
@@ -89,12 +95,12 @@ export default async function ServicesPage({ searchParams }: ServicesPageProps) 
                         </CardContent>
                     </Card>
                 ))}
-                {services.length === 0 && (
+                {formattedServices.length === 0 && (
                     <div className="col-span-full text-center py-12 text-zinc-500">
                         Nenhum serviço cadastrado.
                     </div>
                 )}
             </div>
-        </div>
+        </PageContainer>
     );
 }

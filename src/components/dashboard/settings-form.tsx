@@ -277,7 +277,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
                             </div>
                         </div>
 
-                        <div className="border-t border-zinc-800 pt-4">
+                        <div id="hours" className="border-t border-zinc-800 pt-4">
                             <h3 className="text-lg font-semibold text-white mb-4">Horário de Funcionamento (Exibição)</h3>
                             <div className="space-y-4">
                                 <div className="grid grid-cols-3 gap-4 items-center">

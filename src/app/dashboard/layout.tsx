@@ -27,10 +27,15 @@ export default async function DashboardLayout({
                         userRole={userRole}
                         barbershopName={settings?.name}
                         barbershopLogo={settings?.logoUrl}
+                        barbershopSlug={settings?.slug}
                     />
                 </div>
                 <main className="md:pl-72 min-h-screen">
-                    <Header />
+                    <Header
+                        barbershopName={settings?.name}
+                        barbershopLogo={settings?.logoUrl}
+                        barbershopSlug={settings?.slug}
+                    />
                     <div className="p-8 bg-black text-white">
                         {children}
                     </div>

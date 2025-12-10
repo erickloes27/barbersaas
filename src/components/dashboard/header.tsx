@@ -16,7 +16,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
 import { logout } from "@/actions/auth";
 
-export async function Header() {
+interface HeaderProps {
+    barbershopName?: string;
+    barbershopLogo?: string | null;
+    barbershopSlug?: string | null;
+}
+
+export async function Header({ barbershopName: propName, barbershopLogo: propLogo, barbershopSlug: propSlug }: HeaderProps) {
     const session = await auth();
     let user = session?.user;
 
@@ -29,16 +35,18 @@ export async function Header() {
         }
     }
 
-    let barbershopName: string | undefined | null = undefined;
-    let barbershopLogo: string | undefined | null = undefined;
+    let barbershopName = propName;
+    let barbershopLogo = propLogo;
+    let barbershopSlug = propSlug;
 
-    if (user?.barbershopId) {
+    if (!barbershopName && user?.barbershopId) {
         const barbershop = await prisma.barbershop.findUnique({
             where: { id: user.barbershopId },
-            select: { name: true, logoUrl: true }
+            select: { name: true, logoUrl: true, slug: true }
         });
         barbershopName = barbershop?.name;
         barbershopLogo = barbershop?.logoUrl;
+        barbershopSlug = barbershop?.slug;
     }
 
     return (
@@ -55,6 +63,7 @@ export async function Header() {
                         userRole={user?.role || "USER"}
                         barbershopName={barbershopName}
                         barbershopLogo={barbershopLogo}
+                        barbershopSlug={barbershopSlug}
                     />
                 </SheetContent>
             </Sheet>

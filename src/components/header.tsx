@@ -10,9 +10,10 @@ import { useSession } from "next-auth/react";
 interface HeaderProps {
     barbershopName?: string;
     barbershopLogo?: string | null;
+    slug?: string;
 }
 
-export function Header({ barbershopName, barbershopLogo }: HeaderProps) {
+export function Header({ barbershopName, barbershopLogo, slug }: HeaderProps) {
     const { data: session } = useSession();
     const [isScrolled, setIsScrolled] = React.useState(false);
 
@@ -24,6 +25,8 @@ export function Header({ barbershopName, barbershopLogo }: HeaderProps) {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
+    const homeLink = slug ? `/${slug}` : "/";
+
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
@@ -32,7 +35,7 @@ export function Header({ barbershopName, barbershopLogo }: HeaderProps) {
                 }`}
         >
             <div className="container mx-auto px-4 flex items-center justify-between">
-                <Link href="/" className="flex items-center gap-2 group">
+                <Link href={homeLink} className="flex items-center gap-2 group">
                     {barbershopLogo ? (
                         <div className="h-10 w-10 rounded-lg overflow-hidden relative bg-white/10">
                             <img src={barbershopLogo} alt="Logo" className="object-cover h-full w-full" />
@@ -69,11 +72,15 @@ export function Header({ barbershopName, barbershopLogo }: HeaderProps) {
                             <Link href="/master">Voltar para Master</Link>
                         </Button>
                     )}
-                    <Button variant="ghost" className="text-white hover:text-yellow-500 hover:bg-white/10" asChild>
-                        <Link href="/login">Entrar</Link>
-                    </Button>
+                    {!session?.user ? (
+                        <Button variant="ghost" className="text-white hover:text-yellow-500 hover:bg-white/10" asChild>
+                            <Link href="/login">Entrar</Link>
+                        </Button>
+                    ) : null}
                     <Button className="bg-yellow-500 text-black hover:bg-yellow-400 font-bold" asChild>
-                        <Link href="/login">Agendar Agora</Link>
+                        <Link href={session?.user ? "/dashboard" : "/login"}>
+                            Agendar Agora
+                        </Link>
                     </Button>
                 </div>
 
@@ -102,11 +109,15 @@ export function Header({ barbershopName, barbershopLogo }: HeaderProps) {
                                 ))}
                             </nav>
                             <div className="mt-auto pb-8 space-y-4">
-                                <Button variant="outline" className="w-full bg-transparent border-zinc-700 text-white hover:bg-zinc-800 hover:text-white h-12 text-lg" asChild>
-                                    <Link href="/login">Entrar</Link>
-                                </Button>
+                                {!session?.user && (
+                                    <Button variant="outline" className="w-full bg-transparent border-zinc-700 text-white hover:bg-zinc-800 hover:text-white h-12 text-lg" asChild>
+                                        <Link href="/login">Entrar</Link>
+                                    </Button>
+                                )}
                                 <Button className="w-full bg-yellow-500 text-black hover:bg-yellow-400 font-bold h-12 text-lg" asChild>
-                                    <Link href="/login">Agendar Agora</Link>
+                                    <Link href={session?.user ? "/dashboard" : "/login"}>
+                                        Agendar Agora
+                                    </Link>
                                 </Button>
                             </div>
                         </div>

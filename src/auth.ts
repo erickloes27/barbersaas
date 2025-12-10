@@ -15,6 +15,14 @@ import bcrypt from "bcryptjs"
  * 1. Google (Login Social)
  * 2. Credenciais (Email e Senha)
  */
+
+if (!process.env.GOOGLE_CLIENT_ID) {
+    console.error("⚠️ GOOGLE_CLIENT_ID is missing from environment variables!");
+}
+if (!process.env.GOOGLE_CLIENT_SECRET) {
+    console.error("⚠️ GOOGLE_CLIENT_SECRET is missing from environment variables!");
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
     adapter: PrismaAdapter(prisma) as any, // Salva sessões no banco de dados
     session: {

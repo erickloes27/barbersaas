@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, X, User, MoreHorizontal, Calendar as CalendarIcon } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { updateAppointmentStatus, updateAppointmentStatusVoid } from "@/actions/appointment";
+import { updateAppointmentStatus, updateAppointmentStatusVoid, cancelAppointment } from "@/actions/appointment";
 import {
     Table,
     TableBody,
@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { AppointmentCalendar } from "@/components/dashboard/appointment-calendar";
 import { ClientDetailsSheet } from "@/components/dashboard/client-details-sheet";
+import { CancelAppointmentButton } from "@/components/dashboard/cancel-appointment-button";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +23,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageContainer } from "@/components/ui/page-container";
 
 interface PageProps {
     searchParams: Promise<{ date?: string }>;
@@ -129,7 +131,7 @@ export default async function AppointmentsPage(props: PageProps) {
     const bookedDays = allAppointments.map(apt => apt.date);
 
     return (
-        <div className="space-y-8">
+        <PageContainer>
             <div className="flex items-center justify-between">
                 <h2 className="text-3xl font-bold tracking-tight text-white">Agendamentos</h2>
             </div>
@@ -255,9 +257,14 @@ export default async function AppointmentsPage(props: PageProps) {
                                                     <p className="text-sm text-zinc-400">{apt.service.name} - {new Date(apt.date).toLocaleTimeString("pt-BR", { hour: '2-digit', minute: '2-digit' })}</p>
                                                 </div>
                                             </div>
-                                            <Badge variant="outline" className={statusMap[apt.status]?.color}>
-                                                {statusMap[apt.status]?.label || apt.status}
-                                            </Badge>
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="outline" className={statusMap[apt.status]?.color}>
+                                                    {statusMap[apt.status]?.label || apt.status}
+                                                </Badge>
+                                                {apt.status === "SCHEDULED" && (
+                                                    <CancelAppointmentButton appointmentId={apt.id} />
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -266,6 +273,6 @@ export default async function AppointmentsPage(props: PageProps) {
                     </Card>
                 </div>
             </div>
-        </div>
+        </PageContainer>
     );
 }

@@ -49,6 +49,13 @@ export function AddCarouselDialog() {
     };
 
     async function handleSubmit(formData: FormData) {
+        console.log("Submitting carousel form...");
+
+        if (!preview) {
+            toast.error("Por favor, selecione uma imagem.");
+            return;
+        }
+
         // Ajustar o link final
         if (linkType === "custom") {
             formData.set("ctaLink", customLink);
@@ -111,7 +118,6 @@ export function AddCarouselDialog() {
                                 accept="image/*"
                                 className="hidden"
                                 onChange={handleImageChange}
-                                required
                             />
                         </div>
 
