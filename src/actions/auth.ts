@@ -37,6 +37,8 @@ export async function loginWithCredentials(prevState: any, formData: FormData) {
 }
 
 export async function logout() {
+    // Limpa o cache de todas as rotas
+    // revalidatePath("/"); // removido pois signOut já deve lidar com isso, mas vamos forçar se necessário
     await signOut({ redirectTo: "/login" });
 }
 
