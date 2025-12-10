@@ -26,27 +26,21 @@ export async function loginWithCredentials(prevState: any, formData: FormData) {
     const password = formData.get("password") as string;
 
     try {
-        await signIn("credentials", {
+        const result = await signIn("credentials", {
             email,
             password,
-            redirectTo: "/dashboard",
+            redirect: false,
         });
+
+        if (result?.error) {
+            return { error: "Credenciais inválidas." };
+        }
     } catch (error) {
-        if (error instanceof AuthError) {
-            switch (error.type) {
-                case "CredentialsSignin":
-                    return { error: "Credenciais inválidas." };
-                default:
-                    return { error: "Algo deu errado." };
-            }
-        }
-        // Re-throw Next.js redirects
-        if ((error as any).message === "NEXT_REDIRECT" || (error as any).digest?.startsWith("NEXT_REDIRECT")) {
-            throw error;
-        }
         console.error("Login error:", error);
-        return { error: "Erro interno do sistema. Verifique os logs." };
+        return { error: "Erro interno ao tentar logar." };
     }
+
+    redirect("/dashboard");
 }
 
 export async function logout() {
