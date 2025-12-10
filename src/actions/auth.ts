@@ -10,7 +10,15 @@ import { sendPasswordResetEmail } from "@/lib/mail";
 import { validateCPF } from "@/lib/utils";
 
 export async function loginWithGoogle() {
-    await signIn("google", { redirectTo: "/dashboard" });
+    try {
+        await signIn("google", { redirectTo: "/dashboard" });
+    } catch (error) {
+        if ((error as any).message === "NEXT_REDIRECT" || (error as any).digest?.startsWith("NEXT_REDIRECT")) {
+            throw error;
+        }
+        console.error("Google Login Error:", error);
+        throw error; // Re-throw to let the client handle it, but at least we logged it
+    }
 }
 
 export async function loginWithCredentials(prevState: any, formData: FormData) {
