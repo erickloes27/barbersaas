@@ -59,15 +59,12 @@ export async function createCarouselItem(formData: FormData) {
         try {
             const bytes = await imageFile.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            const filename = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, "")}`;
-            const uploadDir = join(process.cwd(), "public", "uploads");
-            const filepath = join(uploadDir, filename);
-
-            await writeFile(filepath, buffer);
-            imageUrl = `/uploads/${filename}`;
+            const base64 = buffer.toString('base64');
+            const mimeType = imageFile.type || 'image/jpeg';
+            imageUrl = `data:${mimeType};base64,${base64}`;
         } catch (error) {
-            console.error("Erro ao salvar imagem:", error);
-            return { error: "Erro ao salvar imagem do slide." };
+            console.error("Erro ao processar imagem:", error);
+            return { error: "Erro ao processar imagem do slide." };
         }
     }
 
@@ -146,15 +143,12 @@ export async function updateCarouselItem(id: string, formData: FormData) {
         try {
             const bytes = await imageFile.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            const filename = `${Date.now()}-${imageFile.name.replace(/[^a-zA-Z0-9.]/g, "")}`;
-            const uploadDir = join(process.cwd(), "public", "uploads");
-            const filepath = join(uploadDir, filename);
-
-            await writeFile(filepath, buffer);
-            imageUrl = `/uploads/${filename}`;
+            const base64 = buffer.toString('base64');
+            const mimeType = imageFile.type || 'image/jpeg';
+            imageUrl = `data:${mimeType};base64,${base64}`;
         } catch (error) {
-            console.error("Erro ao salvar imagem:", error);
-            return { error: "Erro ao salvar imagem do slide." };
+            console.error("Erro ao processar imagem:", error);
+            return { error: "Erro ao processar imagem do slide." };
         }
     }
 
